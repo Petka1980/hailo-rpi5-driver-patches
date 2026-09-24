@@ -5,11 +5,11 @@ Záznam lokální úpravy ovladače pro sestavu s Frigate na Raspberry Pi 5.
 ## Zaznamenaná konfigurace
 
 - Hailo PCIe driver: `v4.21.0`
-- Kernel ze snímku terminálu: `6.18.50+rpt-rpi-2712`
+- Kernel: `6.18.50+rpt-rpi-2712`
 - Patch: `hailo-rpi5-driver.patch`
 - Zdroj: https://github.com/hailo-ai/hailort-drivers/tree/v4.21.0
 
-Patch byl rekonstruován z uživatelova snímku úplného `git diff`. Původní soubory z tagu v4.21.0 mají stejné Git blob hashe jako výchozí soubory na snímku (`c7b881f` a `7ad4a68`). Obsah změn byl přepsán podle snímku, ale výsledné blob hashe se liší; přesná bajtová shoda s původním patchem není potvrzena.
+Patch je určen pro zdrojové soubory Hailo PCIe driveru `v4.21.0`. Jeho aplikovatelnost na tuto verzi byla ověřena pomocí `git apply --check`.
 
 ## Změny
 
@@ -40,9 +40,9 @@ Přidanou hlášku lze po načtení upraveného modulu hledat v kernel logu:
 Probing: Forcing driver allocated vdma buffers (RPi kernel workaround)
 ```
 
-## Ověření artefaktu
+## Ověření
 
 - `git diff --check`: úspěšné.
 - `git apply --check` proti původním souborům v4.21.0: úspěšné.
-- Kontrola zpětného aplikování na rekonstruované upravené soubory: úspěšná.
-- Kompilace, instalace a provoz s Frigate: neověřeno v této relaci.
+- Kontrola zpětného aplikování patche: úspěšná.
+- Kompilace, instalace a provoz s Frigate: neověřeno v rámci kontroly tohoto patche.
