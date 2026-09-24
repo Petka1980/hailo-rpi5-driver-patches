@@ -1,0 +1,45 @@
+diff --git a/linux/pcie/src/pcie.c b/linux/pcie/src/pcie.c
+index c7b881f..6317f86 100644
+--- a/linux/pcie/src/pcie.c
++++ b/linux/pcie/src/pcie.c
+@@ -89,7 +89,7 @@ static int hailo_get_desc_page_size(struct pci_dev *pdev, u32 *out_page_size)
+     int err = 0;
+     // The default page size must be smaller/equal to 32K (due to PLDA registers limit).
+     const u32 max_page_size = 32u * 1024u;
+-    const u32 defualt_page_size = min((u32)PAGE_SIZE, max_page_size);
++    const u32 defualt_page_size = min((u32)PAGE_SIZE, 4096u);
+ 
+     if (force_desc_page_size != 0) {
+         // The user given desc_page_size as a module parameter
+@@ -1130,6 +1130,9 @@ static bool is_kmalloc_dma_capable(struct device *dev)
+ 
+ static int hailo_get_allocation_mode(struct pci_dev *pdev, enum hailo_allocation_mode *allocation_mode)
+ {
++    *allocation_mode = HAILO_ALLOCATION_MODE_DRIVER;
++    pci_notice(pdev, "Probing: Forcing driver allocated vdma buffers (RPi kernel workaround)\n");
++    return 0;
+     // Check if module paramater was given to override driver choice
+     if (HAILO_NO_FORCE_BUFFER != force_allocation_from_driver) {
+         if (HAILO_FORCE_BUFFER_FROM_USERSPACE == force_allocation_from_driver) {
+diff --git a/linux/vdma/memory.c b/linux/vdma/memory.c
+index 7ad4a68..6e057bc 100644
+--- a/linux/vdma/memory.c
++++ b/linux/vdma/memory.c
+@@ -14,6 +14,7 @@
+ #include <linux/sched.h>
+ #include <linux/module.h>
+ #include <linux/fdtable.h>
++#include <linux/mm.h>
+ 
+ // See linux/mm.h
+ #define MMIO_AND_NO_PAGES_VMA_MASK (VM_IO | VM_PFNMAP)
+@@ -167,7 +168,9 @@ struct hailo_vdma_buffer *hailo_vdma_buffer_map(struct device *dev,
+     }
+ 
+     if (HAILO_DMA_DMABUF_BUFFER != buffer_type) {
++        mmap_read_lock(current->mm);
+         vma = find_vma(current->mm, addr_or_fd);
++        mmap_read_unlock(current->mm);
+         if (IS_ENABLED(HAILO_SUPPORT_MMIO_DMA_MAPPING)) {
+             if (NULL == vma) {
+                 dev_err(dev, "no vma for virt_addr/size = 0x%08lx/0x%08zx\n", addr_or_fd, size);
